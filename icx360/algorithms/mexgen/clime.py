@@ -12,13 +12,13 @@ The MExGen framework and C-LIME algorithm are described in:
 import numpy as np
 from sklearn.linear_model import LinearRegression, lars_path
 
-from icx360.algorithms.lbbe import LocalBBExplainer
+from icx360.algorithms.mexgen import MExGenExplainer
 from icx360.utils.scalarizers import ProbScalarizedModel, TextScalarizedModel
 from icx360.utils.segmenters import SpaCySegmenter, exclude_non_alphanumeric
 from icx360.utils.subset_utils import mask_subsets, sample_subsets
 
 
-class CLIME(LocalBBExplainer):
+class CLIME(MExGenExplainer):
     """
     MExGen C-LIME explainer
 
@@ -31,40 +31,6 @@ class CLIME(LocalBBExplainer):
             "Scalarized model" that further wraps `model` with a method for computing scalar values
             based on the model's inputs or outputs.
     """
-    def __init__(self, model, segmenter="en_core_web_trf", scalarizer="prob", **kwargs):
-        """
-        Initialize MExGen C-LIME explainer.
-
-        Args:
-            model (icx360.utils.model_wrappers.Model):
-                Model to explain, wrapped in an icx360.utils.model_wrappers.Model object.
-            segmenter (str):
-                Name of spaCy model to use in segmenter (icx360.utils.segmenters.SpaCySegmenter).
-            scalarizer (str):
-                Type of scalarizer to use.
-                    "prob": probability of generating original output conditioned on perturbed inputs
-                        (instantiates an icx360.utils.scalarizers.ProbScalarizedModel).
-                    "text": similarity scores between original output and perturbed outputs
-                        (instantiates an icx360.utils.scalarizers.TextScalarizedModel).
-            **kwargs (dict):
-                Additional keyword arguments for initializing scalarizer.
-
-        Raises:
-            ValueError: If `scalarizer` is not "prob" or "text".
-        """
-        self.model = model
-
-        # Instantiate segmenter
-        self.segmenter = SpaCySegmenter(segmenter)
-
-        # Instantiate scalarized model
-        if scalarizer == "prob":
-            self.scalarized_model = ProbScalarizedModel(model)
-        elif scalarizer == "text":
-            self.scalarized_model = TextScalarizedModel(model, **kwargs)
-        else:
-            raise ValueError("Scalarizer not supported")
-
     def explain_instance(self, input_orig, unit_types="p", ind_segment=True, segment_type="s", max_phrase_length=10,
                          model_params={}, scalarize_params={}, oversampling_factor=10, max_units_replace=2,
                          empty_subset=True, replacement_str="", num_nonzeros=None, debias=True):
@@ -126,18 +92,8 @@ class CLIME(LocalBBExplainer):
                         One or more sets of attribution scores (labelled by the type of scalarizer).
         """
         # 1) Segment input text if needed
-        if type(ind_segment) is bool:
-            ind_segment = [ind_segment]
-        if type(input_orig) is str or any(ind_segment):
-            # Call segmenter
-            input_orig, unit_types, _ = self.segmenter.segment_units(input_orig, ind_segment, unit_types, segment_type=segment_type, max_phrase_length=max_phrase_length)
-            # Exclude units without alphanumeric characters from perturbation
-            unit_types = exclude_non_alphanumeric(unit_types, input_orig)
+        input_orig, unit_types = self.segment_input(input_orig, unit_types, ind_segment, segment_type, max_phrase_length)
         num_units = len(input_orig)
-
-        if type(unit_types) is str:
-            # Expand to list
-            unit_types = [unit_types] * num_units
 
         # 2) Generate output for original input
         output_orig = self.model.generate([input_orig], text_only=False, **model_params)

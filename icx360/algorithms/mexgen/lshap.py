@@ -13,13 +13,12 @@ from math import comb
 
 import numpy as np
 
-from icx360.algorithms.lbbe import LocalBBExplainer
+from icx360.algorithms.mexgen import MExGenExplainer
 from icx360.utils.scalarizers import ProbScalarizedModel, TextScalarizedModel
-from icx360.utils.segmenters import SpaCySegmenter, exclude_non_alphanumeric
 from icx360.utils.subset_utils import mask_subsets, sample_subsets
 
 
-class LSHAP(LocalBBExplainer):
+class LSHAP(MExGenExplainer):
     """
     MExGen L-SHAP explainer
 
@@ -32,40 +31,6 @@ class LSHAP(LocalBBExplainer):
             "Scalarized model" that further wraps `model` with a method for computing scalar values
             based on the model's inputs or outputs.
     """
-    def __init__(self, model, segmenter="en_core_web_trf", scalarizer="prob", **kwargs):
-        """
-        Initialize MExGen L-SHAP explainer.
-
-        Args:
-            model (icx360.utils.model_wrappers.Model):
-                Model to explain, wrapped in an icx360.utils.model_wrappers.Model object.
-            segmenter (str):
-                Name of spaCy model to use in segmenter (icx360.utils.segmenters.SpaCySegmenter).
-            scalarizer (str):
-                Type of scalarizer to use.
-                    "prob": probability of generating original output conditioned on perturbed inputs
-                        (instantiates an icx360.utils.scalarizers.ProbScalarizedModel).
-                    "text": similarity scores between original output and perturbed outputs
-                        (instantiates an icx360.utils.scalarizers.TextScalarizedModel).
-            **kwargs (dict):
-                Additional keyword arguments for initializing scalarizer.
-
-        Raises:
-            ValueError: If `scalarizer` is not "prob" or "text".
-        """
-        self.model = model
-
-        # Instantiate segmenter
-        self.segmenter = SpaCySegmenter(segmenter)
-
-        # Instantiate scalarized model
-        if scalarizer == "prob":
-            self.scalarized_model = ProbScalarizedModel(model)
-        elif scalarizer == "text":
-            self.scalarized_model = TextScalarizedModel(model, **kwargs)
-        else:
-            raise ValueError("Scalarizer not supported")
-
     def explain_instance(self, input_orig, unit_types="p", ind_interest=None, ind_segment=True, segment_type="s",
                          max_phrase_length=10, model_params={}, scalarize_params={},
                          num_neighbors=2, max_units_replace=2, replacement_str=""):
@@ -123,18 +88,8 @@ class LSHAP(LocalBBExplainer):
                         One or more sets of attribution scores (labelled by the type of scalarizer).
         """
         # 1) Segment input text if needed
-        if type(ind_segment) is bool:
-            ind_segment = [ind_segment]
-        if type(input_orig) is str or any(ind_segment):
-            # Call segmenter
-            input_orig, unit_types, _ = self.segmenter.segment_units(input_orig, ind_segment, unit_types, segment_type=segment_type, max_phrase_length=max_phrase_length)
-            # Exclude units without alphanumeric characters from perturbation
-            unit_types = exclude_non_alphanumeric(unit_types, input_orig)
+        input_orig, unit_types = self.segment_input(input_orig, unit_types, ind_segment, segment_type, max_phrase_length)
         num_units = len(input_orig)
-
-        # Expand to list if needed
-        if type(unit_types) is str:
-            unit_types = [unit_types] * num_units
 
         if ind_interest is None:
             # Default is to attribute to all units that can be perturbed
