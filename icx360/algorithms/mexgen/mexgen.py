@@ -10,6 +10,7 @@ The MExGen framework is described in:
 # Assisted by watsonx Code Assistant in formatting and augmenting docstrings.
 
 from icx360.algorithms.lbbe import LocalBBExplainer
+from icx360.utils.model_wrappers import GeneratedOutput, HFModel
 from icx360.utils.scalarizers import ProbScalarizedModel, TextScalarizedModel
 from icx360.utils.segmenters import SpaCySegmenter, exclude_non_alphanumeric
 
@@ -105,3 +106,42 @@ class MExGenExplainer(LocalBBExplainer):
             unit_types = [unit_types] * num_units
 
         return input_orig, unit_types
+
+    def generate_or_wrap_output(self, input_orig, output_orig=None, model_params={}):
+        """
+        Generate output for original input or wrap provided output in a GeneratedOutput object
+
+        Args:
+            input_orig (List[str]):
+                Original input segmented into units.
+            output_orig (str or List[str] or icx360.utils.model_wrappers.GeneratedOutput or None):
+                Output for original input if provided, otherwise None.
+            model_params (dict):
+                Additional keyword arguments for model generation (for the self.model.generate() method).
+
+        Returns:
+            output_orig (icx360.utils.model_wrappers.GeneratedOutput):
+                Object containing output for original input.
+
+        Raises:
+            TypeError: If `output_orig` is not str, List[str], GeneratedOutput, or None.
+        """
+        if output_orig is None:
+            # Generate output for original input
+            output_orig = self.model.generate([input_orig], text_only=False, **model_params)
+        elif type(output_orig) in (str, list):
+            if type(output_orig) is str:
+                output_orig = [output_orig]
+
+            # Wrap output text in a GeneratedOutput object
+            output_orig = GeneratedOutput(output_text=output_orig)
+
+            if isinstance(self.model, HFModel) and isinstance(self.scalarized_model, ProbScalarizedModel):
+                # Also need output token IDs for ProbScalarizedModel with HFModel
+                output_orig.output_ids = self.model.convert_input(output_orig.output_text)["input_ids"]
+                output_orig.output_token_count = output_orig.output_ids.shape[1]
+
+        elif not isinstance(output_orig, GeneratedOutput):
+            raise TypeError("output_orig must be a str, List[str], GeneratedOutput, or None.")
+
+        return output_orig

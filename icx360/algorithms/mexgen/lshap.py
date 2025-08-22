@@ -31,8 +31,9 @@ class LSHAP(MExGenExplainer):
             "Scalarized model" that further wraps `model` with a method for computing scalar values
             based on the model's inputs or outputs.
     """
-    def explain_instance(self, input_orig, unit_types="p", ind_interest=None, ind_segment=True, segment_type="s",
-                         max_phrase_length=10, model_params={}, scalarize_params={},
+    def explain_instance(self, input_orig, unit_types="p", ind_interest=None, output_orig=None,
+                         ind_segment=True, segment_type="s", max_phrase_length=10,
+                         model_params={}, scalarize_params={},
                          num_neighbors=2, max_units_replace=2, replacement_str=""):
         """
         Explain model output by attributing it to parts of the input text.
@@ -51,6 +52,8 @@ class LSHAP(MExGenExplainer):
             ind_interest (bool or List[bool] or None):
                 [input] Indicator of units to attribute to ("of interest").
                 Default None means np.array(unit_types) != "n".
+            output_orig (str or List[str] or icx360.utils.model_wrappers.GeneratedOutput or None):
+                [output] Output for original input if provided, otherwise None.
             ind_segment (bool or List[bool]):
                 [segmentation] Whether to segment input text.
                 If bool, applies to all units; if List[bool], applies to each unit individually.
@@ -101,8 +104,8 @@ class LSHAP(MExGenExplainer):
         idx_interest = ind_interest.nonzero()[0]
         idx_replace = (np.array(unit_types) != "n").nonzero()[0]
 
-        # 2) Generate output for original input
-        output_orig = self.model.generate([input_orig], text_only=False, **model_params)
+        # 2) Generate output for original input or wrap provided output
+        output_orig = self.generate_or_wrap_output(input_orig, output_orig, model_params)
 
         # 3) Initialize quantities
         # Initialize importance scores
