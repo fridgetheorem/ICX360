@@ -136,8 +136,8 @@ class MExGenExplainer(LocalBBExplainer):
             # Wrap output text in a GeneratedOutput object
             output_orig = GeneratedOutput(output_text=output_orig)
 
-            if isinstance(self.model, HFModel) and isinstance(self.scalarized_model, ProbScalarizedModel):
-                # Also need output token IDs for ProbScalarizedModel with HFModel
+            if isinstance(self.model, HFModel):
+                # Also include output token IDs for HFModel
                 output_orig.output_ids = self.model.convert_input(output_orig.output_text)["input_ids"]
                 output_orig.output_token_count = output_orig.output_ids.shape[1]
 
