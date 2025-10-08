@@ -18,6 +18,19 @@ The toolkit features explanation methods, quick start and elaborate example note
 
 3. **Token Highlighter: Inspecting and Mitigating Jailbreak Prompts for Large Language Models**: Explains potential jailbreak threats by highlighting important prompt tokens based on model gradients. [![Read Paper](https://img.shields.io/badge/Read%20Paper-PDF-yellow)](https://arxiv.org/pdf/2412.18171) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/IBM/ICX360/blob/main/examples/th/quick_start.ipynb)
 
+## Download package from pypi
+To make use of ICX360, simply install ICX360 from your package manager, e.g. pip or uv:
+```
+uv pip install icx360
+```
+Download the spacy models for use in the project
+```
+uv run python -m spacy download en_core_web_trf
+uv run python -m spacy download en_core_web_trf
+```
+
+
+## Download from repo
 
 
 ## Prerequisites
@@ -50,6 +63,9 @@ Ensure that you are inside the `icx360` directory (where `README.md` is located)
 uv venv --python 3.12
 source .venv/bin/activate
 uv pip install .
+uv run python -m spacy download en_core_web_trf
+uv run python -m spacy download en_core_web_trf
+
 ```
 
 Or in Windows, run:
@@ -58,6 +74,8 @@ Or in Windows, run:
 uv venv --python 3.12
 .venv/bin/activate
 uv pip install .
+uv run python -m spacy download en_core_web_trf
+uv run python -m spacy download en_core_web_trf
 ```
 
 The package has been tested on `Red Hat Enterprise Linux 9`.
