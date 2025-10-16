@@ -223,6 +223,7 @@ class TextScalarizedModel(Scalarizer):
         if "st" in self.sim_scores or "st_log" in self.sim_scores:
             # Compute SentenceTransformer similarities
             # Encode reference output and generated outputs using SentenceTransformer
+            print(f"Reference Text to Sentence Transformer: {ref_text}")
             ref_embedding = self.model_st.encode(ref_text, convert_to_tensor=True)
             gen_embedding = self.model_st.encode(outputs, convert_to_tensor=True)
 

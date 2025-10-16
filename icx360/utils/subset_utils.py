@@ -8,13 +8,13 @@ and L-SHAP (icx360.algorithms.mexgen.lshap).
 
 from itertools import combinations
 from math import ceil, inf
-from random import sample
+from random import randrange, sample
 
 import numpy as np
 
 
 def sample_subsets(idx_replace, max_units_replace, oversampling_factor=None, num_return_sequences=None,
-                   empty_subset=False, return_weights=False):
+                   empty_subset=False, return_weights=False, max_texts=False):
     """
     Sample subsets of input units that can be replaced.
 
@@ -32,6 +32,8 @@ def sample_subsets(idx_replace, max_units_replace, oversampling_factor=None, num
             Whether to include the empty subset.
         return_weights (bool):
             Whether to return weights associated with subsets.
+        max_texts (int):
+            The maximum number of texts to return.
 
     Returns:
         subsets (list[list[int]]):
@@ -56,30 +58,46 @@ def sample_subsets(idx_replace, max_units_replace, oversampling_factor=None, num
     else:
         subsets, weights = [], []
 
-    # Iterate over subset sizes
-    for k in range(1, min(max_units_replace, num_replace) + 1):
-        # Number of subsets of this size
-        num_subsets_k = round(num_subsets_remaining / (max_units_replace + 1 - k)) if num_subsets_remaining < inf else inf
+    if max_texts != None:
+        # Randomly sample max_texts # of subsets from the total combinatorial range
+        for _ in range(1, max_texts):
+            # Sample indices of units
+            subsets = np.array(list(
+                [
+                    sample(
+                        idx_replace, 
+                        randrange(idx_replace, max_units_replace)
+                    ) 
+                    for _ in range(max_texts)
+                ]
+            ))
+        if return_weights:
+            raise NotImplementedError("No support for weights currently.")
+    else:
+        # Iterate over subset sizes
+        for k in range(1, min(max_units_replace, num_replace) + 1):
+            # Number of subsets of this size
+            num_subsets_k = round(num_subsets_remaining / (max_units_replace + 1 - k)) if num_subsets_remaining < inf else inf
 
-        # Enumerate subsets of size k
-        # NOTE: Assumes that enumeration is reasonable for typical k <= 3 and num_replace < 100
-        subsets_new = np.array(list(combinations(range(num_replace), k)))
-        num_subsets_new = len(subsets_new)
-
-        if num_subsets_new > num_subsets_k:
-            # Subsample subsets to equal number specified for this size
-            subsets_new = subsets_new[sample(range(num_subsets_new), num_subsets_k)]
+            # Enumerate subsets of size k
+            # NOTE: Assumes that enumeration is reasonable for typical k <= 3 and num_replace < 100
+            subsets_new = np.array(list(combinations(range(num_replace), k)))
             num_subsets_new = len(subsets_new)
 
-        # Convert to subsets of unit indices
-        subsets_new = idx_replace[subsets_new]
+            if num_subsets_new > num_subsets_k:
+                # Subsample subsets to equal number specified for this size
+                subsets_new = subsets_new[sample(range(num_subsets_new), num_subsets_k)]
+                num_subsets_new = len(subsets_new)
 
-        # Add to subsets and update number remaining
-        subsets.extend(subsets_new.tolist())
-        weights.extend([weight_k / num_subsets_new] * num_subsets_new)
-        num_subsets_remaining -= num_subsets_new
-        if num_subsets_remaining <= 0:
-            break
+            # Convert to subsets of unit indices
+            subsets_new = idx_replace[subsets_new]
+
+            # Add to subsets and update number remaining
+            subsets.extend(subsets_new.tolist())
+            weights.extend([weight_k / num_subsets_new] * num_subsets_new)
+            num_subsets_remaining -= num_subsets_new
+            if num_subsets_remaining <= 0:
+                break
 
     if return_weights:
         return subsets, weights

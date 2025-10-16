@@ -8,6 +8,7 @@ of generating a given reference output conditioned on inputs.
 
 from math import ceil, log2
 
+from icx360.utils.model_wrappers.base_model_wrapper import Model
 import torch
 
 from icx360.utils.model_wrappers import HFModel, VLLMModel
@@ -36,7 +37,7 @@ class ProbScalarizedModel(Scalarizer):
                 or an icx360.utils.model_wrappers.VLLMModel.
         """
         super().__init__(model)
-        if not isinstance(model, HFModel) and not isinstance(model, VLLMModel):
+        if not isinstance(model, Model):
             raise TypeError("Model must be a HFModel (HuggingFace) or VLLMModel for ProbScalarizedModel")
 
     def scalarize_output(self, inputs=None, outputs=None, ref_input=None, ref_output=None, chat_template=False, system_prompt=None, tokenizer_kwargs={}, transformation="log_prob_mean", **kwargs):
