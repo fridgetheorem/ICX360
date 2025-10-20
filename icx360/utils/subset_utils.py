@@ -14,7 +14,7 @@ import numpy as np
 
 
 def sample_subsets(idx_replace, max_units_replace, oversampling_factor=None, num_return_sequences=None,
-                   empty_subset=False, return_weights=False, max_texts=False):
+                   empty_subset=False, return_weights=False, max_texts=None):
     """
     Sample subsets of input units that can be replaced.
 
@@ -50,7 +50,7 @@ def sample_subsets(idx_replace, max_units_replace, oversampling_factor=None, num
     else:
         num_subsets_remaining = inf
     # Weight given to each subset size
-    weight_k = num_subsets_remaining / (max_units_replace + empty_subset)
+    weight_k = num_subsets_remaining / (max_units_replace + (empty_subset or 0))
 
     # Initialize
     if empty_subset:
@@ -58,19 +58,23 @@ def sample_subsets(idx_replace, max_units_replace, oversampling_factor=None, num
     else:
         subsets, weights = [], []
 
+    # NOTE: Highly recommended to apply a random seed before using this functionality
     if max_texts != None:
         # Randomly sample max_texts # of subsets from the total combinatorial range
-        for _ in range(1, max_texts):
-            # Sample indices of units
-            subsets = np.array(list(
-                [
-                    sample(
-                        idx_replace, 
-                        randrange(idx_replace, max_units_replace)
-                    ) 
-                    for _ in range(max_texts)
-                ]
-            ))
+        # Sample indices of units
+        population = range(len(idx_replace))
+        subset_size = max_units_replace # Minimum of 1
+        subsets_idx = np.array(list(
+            [
+                sample(
+                    population,
+                    subset_size
+                ) 
+                for _ in range(max_texts)
+            ]
+        ))
+        subsets_new = idx_replace[subsets_idx]
+        subsets = subsets_new.tolist()
         if return_weights:
             raise NotImplementedError("No support for weights currently.")
     else:

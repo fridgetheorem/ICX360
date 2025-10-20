@@ -59,6 +59,9 @@ class MExGenExplainer(LocalBBExplainer):
             self.scalarized_model = ProbScalarizedModel(model)
         elif scalarizer == "text":
             self.scalarized_model = TextScalarizedModel(model, **kwargs)
+        elif scalarizer == "dummy":
+            pass # we do nothing.
+            # In the future we might want some stub here that throws errors
         else:
             raise ValueError("Scalarizer not supported")
 
